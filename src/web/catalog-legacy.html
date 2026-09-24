@@ -1,0 +1,70 @@
+﻿<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SpecSignal · 자격증 둘러보기</title>
+  <link rel="stylesheet" href="/catalog-legacy.css"><script src="/catalog-legacy.js" defer></script>
+</head>
+<body>
+  <header class="titlebar">
+    <img class="titlebar-art" src="/assets/titlebar.svg" alt="">
+    <div class="titlebar-label pywebview-drag-region">SpecSignal <span>나의 다음 가능성</span></div>
+    <div class="window-controls" id="window-controls" hidden>
+      <button id="window-minimize" type="button" aria-label="창 최소화">−</button>
+      <button id="window-maximize" type="button" aria-label="창 최대화 또는 복원">□</button>
+      <button id="window-close" type="button" aria-label="앱 닫기">×</button>
+    </div>
+    <span class="preview-label" id="preview-label">DESKTOP PREVIEW</span>
+  </header>
+  <div class="app-layout">
+    <aside class="sidebar" aria-label="주 메뉴">
+      <div class="identity"><span id="profile-name">나의 공간</span><small>당신의 가능성에, 시그널을.</small></div>
+      <nav>
+        <div class="nav-group">
+          <h2>탐색하기</h2>
+          <button class="nav-item" id="profile-open" type="button"><img src="/assets/home.svg" alt=""><span>프로필 관리</span></button>
+          <button class="nav-item" id="explore" type="button"><img src="/assets/search.svg" alt=""><span>탐색</span></button>
+          <button class="nav-item" type="button" disabled title="일정 알림 기능은 준비 중입니다"><img src="/assets/radio.svg" alt=""><span>일정 알림</span><small>준비 중</small></button>
+        </div>
+        <div class="nav-group">
+          <h2>탐색</h2>
+          <button class="nav-item active" id="certifications-nav" type="button" aria-current="page"><img src="/assets/list.svg" alt=""><span>자격증</span><small id="count">—</small></button>
+          <button class="nav-item" type="button" disabled title="공모전 기능은 준비 중입니다"><img src="/assets/list.svg" alt=""><span>공모전</span><small>준비 중</small></button>
+          <button class="nav-item" type="button" disabled title="AI 추천 기능은 준비 중입니다"><img src="/assets/smile.svg" alt=""><span>맞춤형 추천</span><small>준비 중</small></button>
+        </div>
+      </nav>
+      <div class="sidebar-bottom"><strong>작은 준비가 만드는<br>더 큰 가능성.</strong><span>SpecSignal · Desktop</span></div>
+    </aside>
+    <main id="main-content" class="main-content">
+      <div class="workspace-top"><span class="breadcrumb">탐색 <span>/</span> 자격증</span><button class="brand" id="brand-home" type="button">SpecSignal</button></div>
+      <section class="page-heading" aria-labelledby="catalog-title"><h1 id="catalog-title">자격증 둘러보기</h1><p>한국산업인력공단 · 공공데이터포털</p></section>
+      <section class="catalog" aria-label="자격증 목록">
+        <div class="filters">
+          <label class="search"><img src="/assets/search-active.svg" alt=""><input id="search" type="search" placeholder="자격증 이름, 분야 검색 ..." aria-label="자격증 이름, 분야 또는 코드 검색" disabled><kbd>Ctrl K</kbd></label>
+          <label class="select-wrap"><select id="category" aria-label="자격구분" disabled><option value="">모든 자격구분</option></select><img src="/assets/chevron-short.svg" alt=""></label>
+          <label class="select-wrap field-wrap"><select id="field" aria-label="직무분야" disabled><option value="">모든 직무분야</option></select><img src="/assets/chevron.svg" alt=""></label>
+        </div>
+        <div class="catalog-toolbar"><p id="result-summary" aria-live="polite">자격증 목록을 불러오고 있습니다.</p><button id="reload" type="button" class="text-button">새로고침 ↻</button></div>
+        <div id="cards" class="cards" aria-busy="true"></div>
+        <div id="empty" class="empty"><div class="loading-ring" aria-hidden="true"></div><h2>새로운 가능성을 찾고 있어요</h2><p>공식 자격증 정보를 불러오는 중입니다.</p></div>
+        <button id="more" class="more" type="button" hidden>더 보기</button>
+        <details id="error-panel" class="error-panel" hidden><summary>연결 오류 상세</summary><pre id="error"></pre></details>
+      </section>
+      <footer class="connection" aria-label="데이터 연결 상태"><div><span class="status-dot" id="status-dot"></span><span id="status" role="status" aria-live="polite">연결 중</span><small id="meta"></small></div><a href="https://www.data.go.kr/data/15003024/openapi.do" target="_blank" rel="noreferrer">공식 데이터 출처 ↗</a></footer>
+    </main>
+  </div>
+  <dialog id="info-dialog" class="info-dialog" aria-labelledby="info-title">
+    <div class="dialog-toolbar"><span>QUALIFICATION DETAILS</span><button id="close-info" class="icon-button" type="button" aria-label="상세정보 닫기">×</button></div>
+    <header class="detail-heading"><p id="info-code"></p><h2 id="info-title">자격증 정보</h2><p>자격증의 기본 정보부터 시험일정까지 한곳에서 확인하세요.</p></header>
+    <div class="detail-body">
+      <section aria-labelledby="detail-section-title"><div class="section-heading"><h3 id="detail-section-title">자격정보</h3><span>한국산업인력공단 제공</span></div><div id="details-content" aria-live="polite"></div></section>
+      <section class="schedule-section" aria-labelledby="schedule-title"><div class="section-heading"><h3 id="schedule-title">시험일정</h3><form id="schedule-form"><label for="year">조회 연도</label><input id="year" type="number" min="1000" max="9999" required><button type="submit">조회</button></form></div><p class="schedule-note">공고된 기간 기준입니다. 같은 회차의 접수기간이 여러 건이면 각각 표시합니다.</p><div id="schedule-content" aria-live="polite"></div></section>
+      <p class="detail-disclaimer">응시 전 공식 공고에서 응시요건과 최종 일정을 확인해주세요.</p>
+    </div>
+  </dialog>
+  <dialog id="profile-dialog" class="profile-dialog" aria-labelledby="profile-title">
+    <form id="profile-form"><div class="section-heading"><h2 id="profile-title">프로필 관리</h2><button id="profile-close" class="icon-button" type="button" aria-label="프로필 닫기">×</button></div><p>앱에서 사용할 이름을 설정해주세요.</p><label for="display-name">이름</label><input id="display-name" maxlength="20" placeholder="이름을 입력해주세요" autocomplete="nickname"><p class="subtle">이름은 이 기기에만 저장됩니다. 계정 로그인 기능은 준비 중입니다.</p><p id="profile-error" role="alert" hidden></p><button class="primary-button" type="submit">저장하기</button></form>
+  </dialog>
+</body>
+</html>
+
