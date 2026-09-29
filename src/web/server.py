@@ -60,10 +60,6 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Cache-Control", "no-store")
         self.send_header("X-Content-Type-Options", "nosniff")
         policy = "default-src 'self'; base-uri 'none'; frame-ancestors 'none'"
-        # pywebview는 JS↔Python 메서드를 new Function으로 생성한다.
-        # 브리지 허용은 데스크톱 전용 서버에만 적용한다.
-        if getattr(self.server, "desktop_bridge", False):
-            policy += "; script-src 'self' 'unsafe-eval'"
         self.send_header("Content-Security-Policy", policy)
         self.end_headers()
         try:
@@ -74,11 +70,12 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="SpecSignal 자격증 목록 확인 페이지")
+    parser = argparse.ArgumentParser(description="SpecSignal 반응형 웹 개발 서버")
+    parser.add_argument("--host", default="127.0.0.1", help="기본: 로컬 접속. 같은 네트워크 기기 테스트: 0.0.0.0")
     parser.add_argument("--port", type=int, default=8000)
     args = parser.parse_args()
-    with ThreadingHTTPServer(("127.0.0.1", args.port), Handler) as server:
-        print(f"SpecSignal: http://127.0.0.1:{args.port} (종료: Ctrl+C)", flush=True)
+    with ThreadingHTTPServer((args.host, args.port), Handler) as server:
+        print(f"SpecSignal: http://{args.host}:{server.server_port} (종료: Ctrl+C)", flush=True)
         try:
             server.serve_forever()
         except KeyboardInterrupt:

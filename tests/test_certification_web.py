@@ -77,12 +77,9 @@ class WebTests(unittest.TestCase):
                 self.assertEqual(response.status, 200)
                 self.assertTrue(response.read())
 
-    def test_bridge_policy_is_only_enabled_for_desktop(self):
+    def test_web_policy_disallows_unsafe_eval(self):
         with urlopen(self.base) as response:
             self.assertNotIn("unsafe-eval", response.headers["Content-Security-Policy"])
-        with patch.object(self.server, "desktop_bridge", True, create=True):
-            with urlopen(self.base) as response:
-                self.assertIn("script-src 'self' 'unsafe-eval'", response.headers["Content-Security-Policy"])
 
     def test_private_files_are_not_served(self):
         for path in ("/.env", "/../.env", "/data/raw/example.bin"):

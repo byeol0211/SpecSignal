@@ -6,7 +6,7 @@ const iso = date => `${date.getFullYear()}-${String(date.getMonth()+1).padStart(
 const offset = days => {const d = new Date(today); d.setDate(d.getDate()+days); return iso(d);};
 const dayDiff = date => Math.round((new Date(`${date}T00:00:00`) - today)/86400000);
 const dday = date => dayDiff(date) === 0 ? 'D-DAY' : dayDiff(date) > 0 ? `D-${dayDiff(date)}` : `D+${-dayDiff(date)}`;
-const uid = () => crypto.randomUUID();
+const uid = () => typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : Array.from(crypto.getRandomValues(new Uint8Array(16)), n => n.toString(16).padStart(2,'0')).join('');
 const defaults = {name:'',school:'',major:'',grade:'3학년',interest:'IT·데이터',role:'개발자',period:'평균',hours:2,auto:false,year:today.getFullYear(),semester:'2학기',start:true,deadline:true,exam:true,contest:true,ai:true};
 let state = {profile:{...defaults},favorites:[],events:[],messages:[],anchor:iso(today)};
 try {const saved=JSON.parse(localStorage.getItem('specsignal.workspace.v1')); if(saved && Array.isArray(saved.events) && Array.isArray(saved.favorites) && Array.isArray(saved.messages)) state={...state,...saved,profile:{...defaults,...saved.profile}};} catch (_) { /* 손상된 저장 값은 기본 화면으로 복구 */ }
@@ -31,12 +31,31 @@ function button(text,action,id='',cls=''){return `<button type="button" class="$
 function options(values,current){return values.map(v=>`<option ${String(v)===String(current)?'selected':''}>${escapeHTML(v)}</option>`).join('');}
 function field(label,name,value,type='text',extra=''){return `<label class="field">${label}<input name="${name}" type="${type}" value="${escapeHTML(value)}" ${extra}></label>`;}
 function toggle(label,name,value){return `<label class="toggle-row"><span>${label}</span><input type="checkbox" name="${name}" ${value?'checked':''}></label>`;}
-function route(next){page=pages.some(p=>p[1]===next)?next:'home';if(location.hash!==`#${page}`)location.hash=page;render();}
+const mobileMenu = window.matchMedia('(max-width: 760px)');
+let sidebarCollapsed = false;
+try {sidebarCollapsed = localStorage.getItem('specsignal.sidebar.collapsed') === 'true';} catch (_) {}
+function setMenu(open){
+ document.body.classList.toggle('menu-open',open);
+ document.body.classList.toggle('sidebar-collapsed',sidebarCollapsed);
+ const expanded=mobileMenu.matches?open:!sidebarCollapsed;
+ const label=mobileMenu.matches?(expanded?'주 메뉴 닫기':'주 메뉴 열기'):(expanded?'사이드바 접기':'사이드바 펼치기');
+ $('menu-toggle').setAttribute('aria-expanded',String(expanded));$('menu-toggle').setAttribute('aria-label',label);$('menu-toggle').title=label;
+ $('menu-toggle').textContent=mobileMenu.matches?'☰ 메뉴':expanded?'‹ 접기':'☰ 펼치기';
+}
+$('menu-toggle').addEventListener('click',()=>{
+ if(mobileMenu.matches){setMenu(!document.body.classList.contains('menu-open'));return;}
+ sidebarCollapsed=!sidebarCollapsed;
+ try {localStorage.setItem('specsignal.sidebar.collapsed',String(sidebarCollapsed));} catch (_) {}
+ setMenu(false);
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.body.classList.contains('menu-open')){setMenu(false);$('menu-toggle').focus();}});
+mobileMenu.addEventListener('change',()=>setMenu(false));
+function route(next){const fromMenu=document.body.classList.contains('menu-open');setMenu(false);page=pages.some(p=>p[1]===next)?next:'home';if(location.hash!==`#${page}`)location.hash=page;render();document.querySelector('.main-content').scrollTop=0;window.scrollTo(0,0);if(fromMenu){const title=document.querySelector('#view h1');if(title){title.tabIndex=-1;title.focus({preventScroll:true});}}}
 function render(){
  document.querySelector('.demo-badge').textContent=page==='cert'?'공식 자격증 목록':'데모 미리보기';
  document.querySelector('.footnote').textContent=page==='cert'?'공식 API 제공 범위의 자격증 목록 · 맞춤 보기는 프로필 키워드 기준입니다.':'데모 데이터로 체험하는 SpecSignal · 입력한 내용은 이 브라우저에 저장됩니다.';
  $('profile-name').textContent=state.profile.name || '나의 공간';
- $('navigation').innerHTML=['MY SPACE','EXPLORE','ACCOUNT'].map(group=>`<div class="nav-group"><h2>${group}</h2>${pages.filter(p=>p[0]===group).map(p=>`<button class="nav-item ${page===p[1]?'active':''}" data-page="${p[1]}" ${page===p[1]?'aria-current="page"':''}><img src="/assets/${p[3]}.svg" alt=""><span>${p[2]}</span></button>`).join('')}</div>`).join('');
+ $('navigation').innerHTML=['MY SPACE','EXPLORE','ACCOUNT'].map(group=>`<div class="nav-group"><h2>${group}</h2>${pages.filter(p=>p[0]===group).map(p=>`<button class="nav-item ${page===p[1]?'active':''}" data-page="${p[1]}" title="${p[2]}" ${page===p[1]?'aria-current="page"':''}><img src="/assets/${p[3]}.svg" alt=""><span>${p[2]}</span></button>`).join('')}</div>`).join('');
  const current=pages.find(p=>p[1]===page);$('breadcrumb').textContent=`${current[0]} / ${current[2]}`;document.title=`SpecSignal · ${current[2]}`;
  if(page==='home')renderHome();else if(page==='profile')renderProfile();else if(page==='ai')renderAI();else if(page==='cert')window.renderCertificates($('view'),state.profile);else renderCatalog();
  renderNotifications();
@@ -114,58 +133,4 @@ document.addEventListener('click',e=>{
 });
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){$('notifications').hidden=true;$('notifications-button').setAttribute('aria-expanded','false');}if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();if(!$('search'))route('cert');$('search').focus();}});
 window.addEventListener('hashchange',()=>{const next=location.hash.slice(1);if(next!==page)route(next);});
-window.addEventListener('pywebviewready',async()=>{enableResizeHandles();$('window-controls').hidden=false;$('preview-label').hidden=true;for(const [id,method] of [['window-minimize','minimize'],['window-maximize','toggle_maximize'],['window-close','close']])$(id).addEventListener('click',()=>window.pywebview.api[method]());if(!state.profile.name)try{state.profile.name=(await window.pywebview.api.get_profile()).name||'';persist();render();}catch(_){} });
-function element(tag,text,className){const node=document.createElement(tag);node.textContent=text;node.className=className;return node;}
 route(location.hash.slice(1)||'home');
-function enableResizeHandles() {
-  for (const edge of ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw']) {
-    const handle = element('div', '', `resize-handle resize-${edge}`);
-    handle.dataset.edge = edge;
-    handle.title = '드래그하여 창 크기 조절';
-    handle.setAttribute('aria-hidden', 'true');
-    document.body.append(handle);
-    handle.addEventListener('pointerdown', event => {
-      if (event.button !== 0) return;
-      event.preventDefault();
-      handle.setPointerCapture(event.pointerId);
-      const start = {x: event.screenX, y: event.screenY, width: innerWidth, height: innerHeight};
-      let pending = null;
-      let sending = false;
-      // 느린 브리지 호출이 쌓이지 않도록 최신 좌표 한 건만 유지한다.
-      async function flush() {
-        if (sending) return;
-        sending = true;
-        try {
-          while (pending) {
-            const size = pending;
-            pending = null;
-            await window.pywebview.api.resize_window(size.width, size.height, edge);
-          }
-        } finally {sending = false;}
-      }
-      function move(current) {
-        const dx = current.screenX - start.x;
-        const dy = current.screenY - start.y;
-        pending = {
-          width: Math.max(820, start.width + (edge.includes('e') ? dx : edge.includes('w') ? -dx : 0)),
-          height: Math.max(620, start.height + (edge.includes('s') ? dy : edge.includes('n') ? -dy : 0)),
-        };
-        flush().catch(() => { /* 종료 중인 창의 브리지 호출은 무시 */ });
-      }
-      function stop(current) {
-        if (current.type === 'pointerup') move(current);
-        handle.removeEventListener('pointermove', move);
-        handle.removeEventListener('pointerup', stop);
-        handle.removeEventListener('pointercancel', stop);
-        handle.removeEventListener('lostpointercapture', stop);
-        if (handle.hasPointerCapture(event.pointerId)) handle.releasePointerCapture(event.pointerId);
-      }
-      handle.addEventListener('pointermove', move);
-      handle.addEventListener('pointerup', stop);
-      handle.addEventListener('pointercancel', stop);
-      handle.addEventListener('lostpointercapture', stop);
-    });
-  }
-}
-
-

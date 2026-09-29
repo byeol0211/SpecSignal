@@ -259,8 +259,7 @@ $('profile-form').addEventListener('submit', async event => {
   event.preventDefault();
   const name = $('display-name').value.trim();
   try {
-    if (window.pywebview?.api) await window.pywebview.api.save_profile(name);
-    else localStorage.setItem('specsignal.displayName', name);
+    localStorage.setItem('specsignal.displayName', name);
     setProfileName(name);
     $('profile-dialog').close();
   } catch (_) {
@@ -268,66 +267,6 @@ $('profile-form').addEventListener('submit', async event => {
     $('profile-error').hidden = false;
   }
 });
-window.addEventListener('pywebviewready', async () => {
-  enableResizeHandles();
-  $('window-controls').hidden = false;
-  $('preview-label').hidden = true;
-  $('window-minimize').addEventListener('click', () => window.pywebview.api.minimize());
-  $('window-maximize').addEventListener('click', () => window.pywebview.api.toggle_maximize());
-  $('window-close').addEventListener('click', () => window.pywebview.api.close());
-  try {setProfileName((await window.pywebview.api.get_profile()).name);} catch (_) { /* 기본 이름 유지 */ }
-});
 
-function enableResizeHandles() {
-  for (const edge of ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw']) {
-    const handle = element('div', '', `resize-handle resize-${edge}`);
-    handle.dataset.edge = edge;
-    handle.title = '드래그하여 창 크기 조절';
-    handle.setAttribute('aria-hidden', 'true');
-    document.body.append(handle);
-    handle.addEventListener('pointerdown', event => {
-      if (event.button !== 0) return;
-      event.preventDefault();
-      handle.setPointerCapture(event.pointerId);
-      const start = {x: event.screenX, y: event.screenY, width: innerWidth, height: innerHeight};
-      let pending = null;
-      let sending = false;
-      // 느린 브리지 호출이 쌓이지 않도록 최신 좌표 한 건만 유지한다.
-      async function flush() {
-        if (sending) return;
-        sending = true;
-        try {
-          while (pending) {
-            const size = pending;
-            pending = null;
-            await window.pywebview.api.resize_window(size.width, size.height, edge);
-          }
-        } finally {sending = false;}
-      }
-      function move(current) {
-        const dx = current.screenX - start.x;
-        const dy = current.screenY - start.y;
-        pending = {
-          width: Math.max(820, start.width + (edge.includes('e') ? dx : edge.includes('w') ? -dx : 0)),
-          height: Math.max(620, start.height + (edge.includes('s') ? dy : edge.includes('n') ? -dy : 0)),
-        };
-        flush().catch(() => { /* 종료 중인 창의 브리지 호출은 무시 */ });
-      }
-      function stop(current) {
-        if (current.type === 'pointerup') move(current);
-        handle.removeEventListener('pointermove', move);
-        handle.removeEventListener('pointerup', stop);
-        handle.removeEventListener('pointercancel', stop);
-        handle.removeEventListener('lostpointercapture', stop);
-        if (handle.hasPointerCapture(event.pointerId)) handle.releasePointerCapture(event.pointerId);
-      }
-      handle.addEventListener('pointermove', move);
-      handle.addEventListener('pointerup', stop);
-      handle.addEventListener('pointercancel', stop);
-      handle.addEventListener('lostpointercapture', stop);
-    });
-  }
-}
-
-// 버튼 조작 없이 시작과 동시에 목록을 조회한다.
+// Load the catalog on startup.
 load();

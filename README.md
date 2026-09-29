@@ -1,4 +1,28 @@
-﻿# SpecSignal 대시보드 미리보기
+# SpecSignal 반응형 웹
+
+2026-09-29 교수님 피드백에 따라 기본 제공 형태를 Windows 데스크톱 앱에서 **PC·태블릿·모바일 브라우저용 반응형 웹**으로 변경했습니다.
+
+## 기본 실행
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m src.web.server
+```
+
+http://127.0.0.1:8000 에 접속합니다. Windows에서는 `start-web.cmd`로 서버를 실행할 수도 있습니다. 웹 실행에는 pywebview나 WebView2 설치가 필요하지 않습니다.
+
+같은 네트워크의 휴대폰에서 확인하려면 `--host 0.0.0.0` 옵션으로 실행하고 `http://PC의LAN주소:8000`에 접속합니다. 네트워크와 방화벽에서 해당 포트 연결이 허용되어 있어야 합니다. 현재 Python 서버는 개발·시연용이며 공개 서비스 배포는 별도 작업입니다.
+
+- 760px 이하: 접이식 메뉴, 세로 화면 배치, 터치 입력에 맞춘 버튼·폼.
+- 420px 이하: 자격증 카드 한 열 배치. 캘린더는 7열을 유지합니다.
+- 페이지 전체 스크롤과 화면 크기에 맞는 알림·상세·일정 팝업을 지원합니다.
+- 데스크톱 전용 실행 코드·의존성·테스트를 제거하고 웹 실행으로 통일했습니다.
+
+반응형 검증: `.\.venv\Scripts\python.exe tests/verify_responsive.py`
+
+구조 변경 결정은 [architecture-decisions.md](docs/architecture-decisions.md)의 9절, 화면 변경은 [design-implementation.md](docs/design-implementation.md)의 반응형 웹 전환 항목에 기록했습니다.
+
+## 현재 기능
 
 현재 기본 화면은 연보라색 테마의 한국어 대시보드입니다. 홈, AI 맞춤 추천, 관심 목록, 자격증·공모전 탐색, 프로필 설정을 같은 사이드바로 연결했습니다.
 
@@ -12,7 +36,7 @@
 - 날짜·공부기간은 예시입니다. 자격증은 공식 기관 링크를 제공하며, 가상 공모전과 학사일정은 공식 출처가 미연동임을 표시합니다. 학교 자동 조회 스위치는 설정 저장만 수행합니다.
 
 웹 실행: `.\.venv\Scripts\python.exe -m src.web.server` 후 http://127.0.0.1:8000 접속.
-입력은 해당 브라우저·포트의 localStorage에 저장됩니다. 데스크톱 앱은 임시 포트 및 비공개 WebView를 사용하므로 종료 후 복원은 보장되지 않습니다. 데이터베이스 연동은 없습니다.
+입력은 해당 브라우저·포트의 localStorage에 저장됩니다. 데이터베이스 연동은 없습니다.
 
 검증:
 
@@ -27,46 +51,6 @@
 기존 단독 실 API 자격증 화면은 `/catalog-live`에도 보존했습니다. 아래 기존 API 설명과 `verify_ui.py`는 이 화면에 해당합니다. 대시보드에서는 자격증 둘러보기에 진입할 때 공식 목록을 조회합니다. `tests/verify_catalog_modes.py`는 대시보드의 전체/맞춤 보기, 프로필 독립성, 목록·상세·일정·오류 처리를 검증합니다.
 
 디자인 참고: Figma `29:905` 홈 및 `2:2899` 챗봇의 디자인 컨텍스트와 스크린샷을 확인했습니다. 기존 프로젝트의 SVG 아이콘을 재사용하고 사용자 요청에 맞춰 공통 내비게이션과 인터랙션을 확장했습니다. 제공된 Figma Make 링크는 소스 목록까지 조회됐으나 본문 리소스가 반환되지 않아, 프로필은 요청된 기능 명세와 공통 스타일을 기준으로 구현했습니다.
-
----
-
-# SpecSignal
-
-Figma 시안을 바탕으로 만든 Windows 데스크톱 자격증 탐색 앱입니다.
-기존 Python API 코드와 HTML/CSS/JavaScript 화면을 pywebview + WebView2 창에서 실행합니다.
-
-## 데스크톱 앱 실행 (프로젝트 루트, PowerShell)
-
-```powershell
-.\.venv\Scripts\python.exe -m pip install -r requirements-desktop.txt
-.\.venv\Scripts\python.exe -m src.desktop
-```
-
-설치 후에는 프로젝트의 **start-desktop.cmd**를 더블클릭해 실행할 수도 있습니다.
-일반 브라우저를 열 필요가 없으며 앱 실행 시 목록을 자동으로 조회합니다.
-Windows에는 [Microsoft Edge WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/)이 필요합니다. 현재 개발 PC에서는 설치와 실행을 확인했습니다.
-
-- 상단 바를 드래그하여 창 이동, 우측 버튼으로 최소화·최대화/복원·닫기
-- 창의 네 가장자리와 네 모서리를 드래그하여 크기 조절 (최소 820×620, 최대화 상태에서는 복원 후 조절)
-- 검색(`Ctrl+K`), 자격구분·직무분야 필터, 8개 단위 더 보기
-- 자격증 상세 창에서 자격정보·연도별 시험일정·오류 재시도
-- 프로필 이름은 `data/local/profile.json`에 저장 (이 기기 전용, 로그인 아님)
-- 일정 알림·공모전·맞춤형 추천은 준비 중으로 표시
-
-앱은 사용 가능한 임의의 로컬 포트를 사용하며, 창이 닫히면 해당 서버도 종료됩니다.
-별도로 실행한 웹 개발 서버와 포트가 충돌하지 않습니다.
-실행 가능한 개발 버전이며 독립 배포용 `.exe` 설치 패키지는 아직 만들지 않았습니다.
-
-## 웹 미리보기 (선택)
-
-```powershell
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
-.\.venv\Scripts\python.exe -m src.web.server
-```
-
-브라우저에서 http://127.0.0.1:8000 을 열면 목록을 자동으로 불러옵니다.
-종목명·코드 검색과 자격구분·직무분야 필터를 제공합니다.
-다른 포트는 `--port 8001`로 지정할 수 있습니다.
 
 ## 디자인과 검증
 
@@ -83,9 +67,7 @@ Figma 원본 SVG는 `src/web/assets/`에 저장되어 외부 이미지 요청 �
 ```
 
 UI 테스트는 설치된 Edge 브라우저와 테스트 전용 데이터를 사용합니다.
-실제 Windows 창과 실 API까지 확인하려면 `tests/verify_native.py`를 실행합니다. 검증용 창은 완료 후 닫힙니다.
 검증 스크린샷은 `artifacts/ui/`에 생성됩니다.
-pywebview 브리지 동작에 필요한 `script-src 'self' 'unsafe-eval'`은 데스크톱 전용 서버에만 적용하며 웹 미리보기에는 적용하지 않습니다.
 
 프로젝트 루트 `.env`에 다음 변수를 설정하세요. 키는 서버에서만 읽습니다.
 
