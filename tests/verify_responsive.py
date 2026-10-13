@@ -1,28 +1,26 @@
 """Verify responsive navigation, layouts and mobile user flows in Edge."""
 import sys
-import threading
 from pathlib import Path
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from playwright.sync_api import sync_playwright, expect
-from src.web.server import Handler, ThreadingHTTPServer
+from src.web.server import background_server
 
 
 def main():
-    server = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
+    server = background_server()
+    base_url = server.__enter__()
     listing = {'ok': True, 'items': [{'jmcd': '1320', 'jmfldnm': '정보처리기사', 'qualgbcd': 'T', 'qualgbnm': '국가기술자격', 'obligfldnm': '정보통신', 'mdobligfldnm': '정보기술'}]}
     output = Path('artifacts/ui')
     output.mkdir(parents=True, exist_ok=True)
     try:
-        with patch('src.web.server.collect_items', return_value=listing), sync_playwright() as p:
+        with patch('src.web.server.load_items', return_value=listing), sync_playwright() as p:
             browser = p.chromium.launch(channel='msedge', headless=True)
             page = browser.new_page(viewport={'width': 390, 'height': 844}, has_touch=True)
             errors = []
             page.on('pageerror', lambda error: errors.append(str(error)))
-            page.goto(f'http://127.0.0.1:{server.server_port}')
+            page.goto(f'{base_url}')
 
             def fits():
                 assert page.evaluate('document.documentElement.scrollWidth <= innerWidth'), page.url
@@ -91,9 +89,7 @@ def main():
             browser.close()
             print('PASS: 7 widths, 6 pages, mobile navigation, schedule persistence and dialog')
     finally:
-        server.shutdown()
-        server.server_close()
-        thread.join()
+        server.__exit__(None, None, None)
 
 
 if __name__ == '__main__':

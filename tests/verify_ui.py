@@ -2,14 +2,13 @@
 
 import json
 import sys
-import threading
 from pathlib import Path
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from playwright.sync_api import sync_playwright, expect
-from src.web.server import Handler, ThreadingHTTPServer
+from src.web.server import background_server
 
 
 def main():
@@ -33,18 +32,17 @@ def main():
             data = [{"infogb": "취득방법", "contents": "시행처: 한국산업인력공단\n필기 및 실기 시험 정보를 확인하세요."}, {"infogb": "출제기준", "contents": "공식 출제기준을 확인하세요.\n<script>window.untrusted = true</script>"}]
         return {"ok": True, "http_status": 200, "items": data}
 
-    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
+    server = background_server()
+    base_url = server.__enter__()
     output = Path("artifacts/ui")
     output.mkdir(parents=True, exist_ok=True)
     try:
-        with patch("src.web.server.collect_items", side_effect=mock_items) as calls, patch("src.web.server.collect_info", side_effect=mock_info), sync_playwright() as p:
+        with patch("src.web.server.load_items", side_effect=mock_items) as calls, patch("src.web.server.load_info", side_effect=mock_info), sync_playwright() as p:
             browser = p.chromium.launch(channel="msedge", headless=True)
             page = browser.new_page(viewport={"width": 1440, "height": 960}, device_scale_factor=1)
             errors = []
             page.on("pageerror", lambda error: errors.append(str(error)))
-            page.goto(f"http://127.0.0.1:{server.server_port}/catalog-live")
+            page.goto(f"{base_url}/catalog-live")
             expect(page.locator('.card')).to_have_count(8)
             assert calls.call_count == 1, "목록은 시작 시 자동으로 한 번 조회해야 함"
             assets = page.locator('img').evaluate_all("nodes => nodes.map(n => ({src:n.getAttribute('src'),w:n.getBoundingClientRect().width,h:n.getBoundingClientRect().height,nw:n.naturalWidth,nh:n.naturalHeight,loaded:n.complete}))")
@@ -101,9 +99,7 @@ def main():
             browser.close()
             print('UI checks passed: autoload, search, filters, details, retry, empty, profile, resize, assets.')
     finally:
-        server.shutdown()
-        server.server_close()
-        thread.join()
+        server.__exit__(None, None, None)
 
 
 if __name__ == '__main__':

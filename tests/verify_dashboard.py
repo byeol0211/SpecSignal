@@ -1,26 +1,24 @@
 ﻿"""데모 대시보드의 주요 사용자 흐름을 실제 Edge에서 검증한다."""
 import sys
-import threading
 from pathlib import Path
 from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from playwright.sync_api import sync_playwright, expect
-from src.web.server import Handler, ThreadingHTTPServer
+from src.web.server import background_server
 
 
 def main():
-    server = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
+    server = background_server()
+    base_url = server.__enter__()
     output = Path('artifacts/ui')
     output.mkdir(parents=True, exist_ok=True)
     try:
-        with patch('src.web.server.collect_items', return_value={'ok': True, 'items': [], 'fetched_at': '2026-09-24T00:00:00Z'}) as api, sync_playwright() as p:
+        with patch('src.web.server.load_items', return_value={'ok': True, 'items': [], 'fetched_at': '2026-09-24T00:00:00Z'}) as api, sync_playwright() as p:
             browser = p.chromium.launch(channel='msedge', headless=True)
             page = browser.new_page(viewport={'width':1440, 'height':960})
             errors = []
             page.on('pageerror', lambda e: errors.append(str(e)))
-            page.goto(f'http://127.0.0.1:{server.server_port}')
+            page.goto(f'{base_url}')
             expect(page.locator('.day')).to_have_count(42)
             expect(page.locator('.note')).to_have_count(0)
             page.locator('[data-page="ai"]').click()
@@ -97,9 +95,7 @@ def main():
             browser.close()
             print('PASS: dashboard flows, persistence, notifications, escaping, 3 viewport sizes')
     finally:
-        server.shutdown()
-        server.server_close()
-        thread.join()
+        server.__exit__(None, None, None)
 
 if __name__ == '__main__':
     main()

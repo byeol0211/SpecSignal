@@ -2,7 +2,6 @@
 
 import json
 import tempfile
-import threading
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -12,7 +11,7 @@ from urllib.request import urlopen
 import requests
 
 from src.certification import collect_items as collector
-from src.web.server import Handler, ThreadingHTTPServer
+from src.web.server import background_server
 
 
 SUCCESS = b'''<response><header><resultCode>00</resultCode></header><body><items>
@@ -60,16 +59,12 @@ class CollectorTests(unittest.TestCase):
 class WebTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
-        cls.thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
-        cls.thread.start()
-        cls.base = f"http://127.0.0.1:{cls.server.server_port}"
+        cls.server = background_server()
+        cls.base = cls.server.__enter__()
 
     @classmethod
     def tearDownClass(cls):
-        cls.server.shutdown()
-        cls.server.server_close()
-        cls.thread.join()
+        cls.server.__exit__(None, None, None)
 
     def test_page_and_static_assets(self):
         for path in ("/", "/app.js", "/style.css", "/assets/home.svg"):
@@ -89,14 +84,15 @@ class WebTests(unittest.TestCase):
             error.exception.close()
 
     def test_api_success_and_failure(self):
-        for result in ({"ok": True, "items": collector.parse_items(SUCCESS), "http_status": 200}, {"ok": False, "error": "test failure", "http_status": 403}):
-            with patch("src.web.server.collect_items", return_value=result):
+        # 화면 API는 Supabase에 저장된 데이터를 조회한다 (load_items). DB 미연결/미수집은 503.
+        for result in ({"ok": True, "items": collector.parse_items(SUCCESS), "fetched_at": "2026-10-13T00:00:00+00:00"}, {"ok": False, "error": "test failure", "http_status": None}):
+            with patch("src.web.server.load_items", return_value=result):
                 try:
                     response = urlopen(self.base + "/api/items")
                 except HTTPError as error:
                     response = error
                 with response:
-                    self.assertEqual(response.status, 200 if result["ok"] else 502)
+                    self.assertEqual(response.status, 200 if result["ok"] else 503)
                     self.assertEqual(json.load(response), result)
 
 

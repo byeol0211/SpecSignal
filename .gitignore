@@ -5,3 +5,7 @@ __pycache__/
 data/raw/
 data/local/
 artifacts/
+.env.*
+!.env.example
+supabase/.temp/
+supabase/.branches/
