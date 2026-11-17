@@ -6,7 +6,7 @@ from datetime import date
 from functools import lru_cache
 from pathlib import Path
 
-from dotenv import load_dotenv
+from dotenv import load_dotenv, dotenv_values
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -44,6 +44,8 @@ class Settings:
     schedule_year_offsets: tuple[int, ...]
     # 공공데이터 API 호출 간 대기(초). 제공기관 부하와 트래픽 한도를 고려한다.
     request_interval_seconds: float
+    anthropic_api_key: str = ""
+    anthropic_model: str = "claude-sonnet-4-6"
 
     def schedule_years(self, today: date | None = None) -> list[str]:
         base = (today or date.today()).year
@@ -53,6 +55,8 @@ class Settings:
 @lru_cache
 def get_settings() -> Settings:
     load_dotenv(PROJECT_ROOT / ".env", encoding="utf-8-sig")
+    # Local Claude credentials may have been rotated after the parent IDE process started.
+    local_ai = dotenv_values(PROJECT_ROOT / ".env", encoding="utf-8-sig")
     offsets = os.getenv("CERT_SCHEDULE_YEAR_OFFSETS", "0,1")
     try:
         year_offsets = tuple(int(part) for part in offsets.split(",") if part.strip())
@@ -68,4 +72,6 @@ def get_settings() -> Settings:
         schedule_refresh_hours=_int("CERT_SCHEDULE_REFRESH_HOURS", 24),
         schedule_year_offsets=year_offsets,
         request_interval_seconds=_float("PUBLIC_API_REQUEST_INTERVAL_SECONDS", 0.3),
+        anthropic_api_key=(local_ai.get("ANTHROPIC_API_KEY", os.getenv("ANTHROPIC_API_KEY", "")) or "").strip(),
+        anthropic_model=(local_ai.get("ANTHROPIC_MODEL", os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6")) or "claude-sonnet-4-6").strip(),
     )

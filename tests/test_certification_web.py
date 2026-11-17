@@ -66,15 +66,20 @@ class WebTests(unittest.TestCase):
     def tearDownClass(cls):
         cls.server.__exit__(None, None, None)
 
-    def test_page_and_static_assets(self):
-        for path in ("/", "/app.js", "/style.css", "/assets/home.svg"):
-            with urlopen(self.base + path) as response:
+    def test_plsai_frontend_assets(self):
+        for path in ("/", "/CSS/style.css", "/js/app.js", "/js/backend.js"):
+            with self.subTest(path=path), urlopen(self.base + path) as response:
                 self.assertEqual(response.status, 200)
                 self.assertTrue(response.read())
+                self.assertNotIn("unsafe-eval", response.headers["Content-Security-Policy"])
 
-    def test_web_policy_disallows_unsafe_eval(self):
-        with urlopen(self.base) as response:
-            self.assertNotIn("unsafe-eval", response.headers["Content-Security-Policy"])
+    def test_removed_frontend_is_not_served(self):
+        for path in ("/app.js", "/style.css", "/catalog-live", "/assets/home.svg"):
+            with self.subTest(path=path), self.assertRaises(HTTPError) as error:
+                urlopen(self.base + path)
+            self.assertEqual(error.exception.code, 404)
+            self.assertNotIn("unsafe-eval", error.exception.headers["Content-Security-Policy"])
+            error.exception.close()
 
     def test_private_files_are_not_served(self):
         for path in ("/.env", "/../.env", "/data/raw/example.bin"):

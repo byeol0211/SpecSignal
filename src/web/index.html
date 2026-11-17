@@ -1,9 +1,78 @@
-<!doctype html>
-<html lang="ko">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>SpecSignal · 나의 공간</title><link rel="stylesheet" href="/style.css"><script src="/certifications.js" defer></script><script src="/app.js" defer></script></head>
-<body>
-<header class="titlebar"><button id="menu-toggle" aria-label="주 메뉴 열기" aria-expanded="false" aria-controls="sidebar">☰ 메뉴</button><div class="titlebar-label">SpecSignal <span>나의 다음 가능성</span></div><span id="preview-label">WEB</span></header>
-<div class="app-layout"><aside class="sidebar" id="sidebar"><div class="identity"><span class="avatar">S</span><strong id="profile-name">나의 공간</strong><small>당신의 가능성에, 시그널을.</small></div><nav aria-label="주 메뉴" id="navigation"></nav><div class="sidebar-bottom">작은 준비가 만드는<br>더 큰 가능성.<small>SpecSignal · 나의 성장 기록</small></div></aside>
-<main class="main-content"><header class="workspace-top"><span id="breadcrumb">MY SPACE / 홈</span><div class="top-actions"><span class="demo-badge">데모 미리보기</span><button id="notifications-button" class="icon-button" aria-label="최근 알림" aria-expanded="false" aria-controls="notifications"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><span id="notification-dot" class="notification-dot" hidden></span></button><button class="brand" data-page="home">SpecSignal</button></div><section id="notifications" class="popover" aria-label="최근 알림" hidden></section></header><div id="view"></div><footer class="footnote">데모 데이터로 체험하는 SpecSignal · 입력한 내용은 이 브라우저에 저장됩니다.</footer></main></div>
-<dialog id="modal" aria-labelledby="modal-title"><div class="modal-heading"><h2 id="modal-title"></h2><button class="icon-button" id="modal-close" aria-label="팝업 닫기">×</button></div><div id="modal-content"></div></dialog><div id="toast" role="status" hidden></div>
-</body></html>
+<!DOCTYPE html>
+
+<html lang="ko"><head><meta charset="utf-8"/><meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/><title>SpecSignal | 모바일 프로토타입</title>
+<link rel="stylesheet" href="./CSS/style.css"></head><body><div class="app"><header class="top"><span class="brand">SpecSignal</span><div class="top-actions"></div></header><main class="main" id="scrollArea">
+<section class="page active" id="profile"><h1>프로필 설정</h1><p class="muted">나에게 맞는 추천을 위해 기본 정보를 알려주세요.</p><div class="card"><label class="field" for="nickname">이름 또는 닉네임</label><input class="input" id="nickname" placeholder="표시할 이름 (선택)"/><label class="field" for="school">학교</label><input class="input" id="school" placeholder="학교명 입력"/><label class="field" for="major">전공 *</label><input class="input" id="major" placeholder="예: 인공지능소프트웨어"/><label class="field" for="career">관심 직무 *</label><input class="input" id="career" placeholder="예: 데이터 분석"/><div class="two"><div><label class="field" for="study">하루 공부시간</label><select class="input" id="study"><option>1시간</option><option selected="">2시간</option><option>3시간 이상</option></select></div><div><label class="field" for="period">준비기간 기준</label><select class="input" id="period"><option>최소</option><option selected="">평균</option><option>최대</option></select></div></div><p class="inline-warning hide" id="profileError">전공과 관심 직무를 입력해 주세요.</p><button class="btn full" onclick="saveProfile()">저장하고 시작하기</button></div></section>
+<section class="page" id="home">
+<div aria-label="홈 화면 보기" class="home-switch" role="tablist">
+<button aria-selected="true" class="active" id="upcomingTab" onclick="setHomeView('upcoming')" role="tab">☷  다가오는 일정</button>
+<button aria-selected="false" id="calendarTab" onclick="setHomeView('calendar')" role="tab">▦  내 캘린더</button>
+</div>
+<div id="homeUpcomingPanel" role="tabpanel">
+<div class="home-section-head"><div><h2>다가오는 일정</h2></div><span class="soft-label" id="upcomingLabel">0개</span></div>
+<div id="upcoming"></div>
+<div class="summary-panel"><h3>내 일정 요약</h3><div class="summary-metrics"><div><small>전체 일정</small><strong id="homeUpcomingCount">0</strong></div><div><small>이번 달 일정</small><strong id="homeMonthCount">0</strong></div><div><small>가장 가까운 일정</small><strong id="homeNextDDay">-</strong></div></div><p class="summary-next" id="homeNextTitle">일정을 추가해 보세요</p></div>
+<div class="home-discover" aria-label="자격증과 공모전 둘러보기">
+  <div class="home-discover-heading"><h2>이런 도전은 어때요?</h2><span>자격증 둘러보기</span></div>
+  <div class="home-discover-grid">
+  </div>
+</div>
+</div>
+<div class="hide" id="homeCalendarPanel" role="tabpanel">
+<div class="calendar-shell"><div class="cal-top"><button aria-label="이전 달" class="month-nav" onclick="changeMonth(-1)">‹</button><strong id="monthLabel"></strong><button aria-label="다음 달" class="month-nav" onclick="changeMonth(1)">›</button></div><div class="cal-grid" id="calendar"></div><div class="calendar-legend"><span><i class="dot personal"></i> 내 일정</span><span><i class="dot academic"></i> 학사일정</span></div></div>
+<div class="selected-schedules"><div class="home-section-head"><h2 id="selectedDayLabel">선택한 날짜</h2><span class="soft-label" id="selectedDayCount">0개</span></div><div id="selectedDayEvents"></div></div>
+</div>
+<button aria-label="일정 추가" class="floating-add" onclick="openEvent()">+</button>
+</section>
+<section class="page" id="explore"><h1>자격증·공모전 탐색</h1><p class="muted">관심 분야의 항목을 찾아보고 상세정보를 확인하세요.</p><div class="tabs"><button class="active" id="certTab" onclick="setCategory('cert')">자격증</button><button id="compTab" onclick="setCategory('comp')">공모전</button></div><input class="input" id="search" oninput="renderExplore()" placeholder="이름 또는 분야 검색"/><div id="exploreResults"></div><button class="btn alt full" id="submitCompetition" onclick="navigate('submission')">＋ 공모전 등록 제안</button></section>
+<section class="page" id="detail"><button class="top-btn" onclick="navigate(lastDetailSource)">‹ 돌아가기</button><div id="detailContent"></div><div class="row" style="margin-top:15px"><button class="btn alt" id="bookmarkDetail" onclick="toggleBookmark(selectedId)">☆ 관심 저장</button><button class="btn" onclick="openEvent(selectedId)">＋ 일정 추가</button></div></section>
+<section class="page" id="ai">
+<h1>SpecSignal Bot</h1>
+<div class="chat-frame">
+<div class="chat-note"><span class="tag warn">예시 데이터</span><span>실제 AI 연결 전 체험 화면입니다.</span></div>
+<div class="chat-messages" id="chatMessages">
+<div class="bubble ai">안녕하세요! 어떤 도전을 준비하고 있나요?<br/>관심 분야와 준비 가능한 기간을 알려주세요.</div>
+<div class="chat-suggestions">
+<button onclick="askSuggestion('전공에 맞는 자격증 추천해줘')">전공에 맞는 자격증</button>
+<button onclick="askSuggestion('이번 학기에 준비할 공모전 추천해줘')">학기 중 준비할 공모전</button>
+</div>
+</div>
+<div class="chat-compose"><textarea class="input" id="aiQuestion" placeholder="예: 데이터 분야 자격증을 60일 안에 준비하고 싶어" rows="2"></textarea><button class="btn" onclick="runRecommendation()">보내기 ↑</button></div>
+</div>
+<div class="card recommendation-profile"><div class="row between"><h2>현재 추천 조건</h2><button class="btn line small" onclick="editMyProfile()">수정</button></div><p id="aiProfile"></p><p class="small-muted">학사일정이 확인되지 않으면 추천 판단에 반영하지 않습니다.</p></div>
+</section>
+<section class="page" id="mypage">
+<div class="eyebrow">MY SPACE / ACCOUNT</div>
+<h1>마이페이지</h1>
+<p class="muted">나의 정보와 준비 현황을 한곳에서 확인해요.</p>
+<div class="my-hero">
+<div class="my-avatar">S</div>
+<div><strong id="myDisplayName">SpecSignal 사용자</strong><p id="mySubtitle">나의 다음 가능성을 준비하고 있어요.</p></div>
+</div>
+<div class="card">
+<div class="row between"><h2 class="my-card-heading">기본 정보</h2><button class="btn line small" onclick="editMyProfile()">수정하기</button></div>
+<div class="my-info-grid">
+<div><span>학교</span><strong id="mySchool">미입력</strong></div>
+<div><span>전공</span><strong id="myMajor">미입력</strong></div>
+<div><span>관심 직무</span><strong id="myCareer">미입력</strong></div>
+<div><span>하루 공부시간</span><strong id="myStudy">미입력</strong></div>
+<div><span>준비기간 기준</span><strong id="myPeriod">미입력</strong></div>
+</div>
+</div>
+<div class="my-stats">
+<div class="card"><span>관심 항목</span><strong id="myBookmarkCount">0</strong><small>개 저장</small></div>
+<div class="card"><span>내 일정</span><strong id="myEventCount">0</strong><small>개 등록</small></div>
+<div class="card"><span>학사일정</span><strong id="myAcademicCount">0</strong><small>개 등록</small></div>
+</div>
+<div class="row between"><h2>관심 목록</h2><button class="btn line small" onclick="navigate('explore')">더 찾아보기</button></div>
+<div class="tabs"><button class="active" id="myCertTab" onclick="setMyBookmarkKind('cert')">자격증</button><button id="myCompTab" onclick="setMyBookmarkKind('comp')">공모전</button></div>
+<div id="bookmarksList"></div>
+<div class="card">
+<div class="row between"><div><h2 class="my-card-heading">학사일정 설정</h2><p class="small-muted">학교 일정 조회 또는 직접 입력</p></div><button class="btn alt small" onclick="navigate('academic')">설정하기</button></div>
+</div>
+</section>
+<section class="page" id="scheduleDetail"><button class="back-link" onclick="navigate('home')">‹   내 일정으로</button><div class="schedule-detail-card"><span class="detail-kicker">일정 정보</span><span class="schedule-kind" id="scheduleType">내 일정</span><h1 id="scheduleTitle">일정</h1><div class="schedule-detail-line"><span>날짜</span><strong id="scheduleDate"></strong></div><div class="schedule-detail-line"><span>남은 기간</span><strong id="scheduleDday"></strong></div><div class="schedule-detail-line"><span>구분</span><strong id="scheduleCategory"></strong></div></div><div class="schedule-actions"><button class="btn full" onclick="editSelectedSchedule()">일정 수정</button><button class="btn line full" onclick="deleteSelectedSchedule()">일정 삭제</button></div></section><section class="page" id="event"><button class="top-btn" onclick="navigate(eventReturn)">‹ 돌아가기</button><h1 id="eventHeading">일정 추가</h1><p class="muted">캘린더에 표시할 개인 일정을 저장하세요.</p><div class="card"><label class="field" for="eventTitle">일정명 *</label><input class="input" id="eventTitle" placeholder="일정 이름"/><label class="field" for="eventType">일정 종류</label><select class="input" id="eventType"><option value="cert">자격증</option><option value="comp">공모전</option><option value="personal">개인 일정</option></select><label class="field" for="eventDate">날짜 *</label><input class="input" id="eventDate" type="date"/><p class="inline-warning hide" id="eventError">일정명과 날짜를 입력해 주세요.</p><button class="btn full" onclick="saveEvent()">일정 저장</button><button class="btn danger full hide" id="deleteEvent" onclick="removeEvent()">일정 삭제</button></div></section>
+<section class="page" id="academic"><button class="top-btn" onclick="navigate('home')">‹ 홈으로</button><h1>학교 학사일정</h1><p class="muted">학교 학사일정을 확인하고 필요한 날짜를 직접 등록할 수 있어요.</p><label class="field" for="academicSchool">학교</label><input class="input" id="academicSchool" placeholder="학교명 입력"/><label class="field" for="academicYear">학년도</label><select class="input" id="academicYear"><option>2026</option><option>2027</option></select><button class="btn full" onclick="loadAcademic()">학사일정 조회</button><div id="academicResult"></div><div class="hide" id="academicManual"><h2>학사일정 직접 입력</h2><div class="card"><label class="field" for="academicTitle">일정명 *</label><input class="input" id="academicTitle" placeholder="예: 기말고사 기간"/><label class="field" for="academicDate">시작 날짜 *</label><input class="input" id="academicDate" type="date"/><p class="inline-warning hide" id="academicError">일정명과 날짜를 입력해 주세요.</p><button class="btn full" onclick="saveAcademic()">학사일정 저장</button></div></div><div id="academicSaved"></div></section>
+<section class="page" id="submission"><button class="top-btn" onclick="navigate('explore')">‹ 탐색으로</button><h1>공모전 등록 제안</h1><p class="muted">공식 공고를 제안하면 검수 후 공개할 수 있어요.</p><div class="card"><label class="field" for="submissionUrl">공식 공고 URL</label><input class="input" id="submissionUrl" placeholder="https://..." type="url"/><label class="field" for="submissionName">공모전명</label><input class="input" id="submissionName" placeholder="공모전 공식 명칭"/><label class="field" for="submissionFile">공고 파일 (PDF·이미지)</label><input accept=".pdf,image/*" class="input" id="submissionFile" type="file"/><div class="info-strip" style="margin-top:14px">제출한 공고는 검수 대기 상태로 표시됩니다. 현재는 실제 서버로 전송되지 않습니다.</div><button class="btn full" onclick="demoSubmit()">검수 요청</button><div id="submissionResult"></div></div></section>
+</main><nav class="bottom hidden" id="bottom"><button data-page="home" onclick="navigate('home')"><span class="symbol">▦</span>홈</button><button data-page="explore" onclick="navigate('explore')"><span class="symbol">⌕</span>탐색</button><button data-page="ai" onclick="navigate('ai')"><span class="symbol">✧</span>AI 추천</button><button data-page="mypage" onclick="navigate('mypage')"><span class="symbol">◉</span>마이페이지</button></nav></div><div class="toast hide" id="toast" role="status"></div>
+<script src="./js/app.js" defer></script><script src="./js/backend.js" defer></script><script src="./js/academic.js" defer></script></body></html>

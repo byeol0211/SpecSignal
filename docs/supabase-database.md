@@ -1,4 +1,12 @@
+> Integration update (2026-11-10): PLSAi frontend now runs on the existing FastAPI server. Certification list, details and yearly exam schedules use backend APIs. Profile, bookmarks and personal schedules still use localStorage; AI and competition submission remain unconnected. Run `python -m src.web.server` and open http://127.0.0.1:8000. Earlier removal/pending statements below describe the previous stage.
+
+> 2026-11-10: 작품 조건 변경에 따라 기존 프론트엔드를 제거하고 PLSAi 기반으로 재구축합니다. 서비스 기능·목표와 아래 DB·백엔드 구성은 유지합니다. 이전 UI 구현 설명은 [이력 문서](history/README.md)로 보존하며, 현재 프론트엔드는 아직 연결하지 않았습니다.
+
 # SpecSignal Supabase 데이터베이스
+
+> 2026-11-15: [학사일정 자동 조회·선택 등록](academic-calendar.md)을 추가했습니다. `academic_calendar_lookups`에 검색 결과를 공유 저장하고, 사용자가 확인한 항목은 `calendar_events`에 본인 RLS 권한으로 등록합니다.
+
+> 현재 웹의 자격증 목록·상세·시험일정은 [공식 API 직접 조회](official-api.md)로 전환했습니다. 아래 자격증 DB 수집·조회 구성은 보존된 이전 구현이며, 현행 웹에서는 사용하지 않습니다. Supabase 스키마와 계정 관련 백엔드는 유지합니다.
 
 작성 기준: 2026-10-13. 관련 결정: [architecture-decisions.md](architecture-decisions.md)
 
