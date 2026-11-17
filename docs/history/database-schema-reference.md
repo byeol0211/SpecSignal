@@ -1,16 +1,8 @@
-> Integration update (2026-11-10): PLSAi frontend now runs on the existing FastAPI server. Certification list, details and yearly exam schedules use backend APIs. Profile, bookmarks and personal schedules still use localStorage; AI and competition submission remain unconnected. Run `python -m src.web.server` and open http://127.0.0.1:8000. Earlier removal/pending statements below describe the previous stage.
+# 기존 Supabase DB 설계 참고
 
-> 2026-11-10: 작품 조건 변경에 따라 기존 프론트엔드를 제거하고 PLSAi 기반으로 재구축합니다. 서비스 기능·목표와 아래 DB·백엔드 구성은 유지합니다. 이전 UI 구현 설명은 [이력 문서](history/README.md)로 보존하며, 현재 프론트엔드는 아직 연결하지 않았습니다.
+2026-11-17 문서 통합 시 보존한 상세 설계입니다. 자격증 DB 수집·정규화, 기존 테이블 제약·RLS·Storage·CLI 기록을 참고하기 위한 자료이며 현재 웹 연동 상태와는 구분합니다. **현재 구현은 [개발 문서](../development.md)**를 기준으로 확인하세요. 아래 항목의 번호는 원문 구성을 유지합니다.
 
-# SpecSignal Supabase 데이터베이스
-
-> 2026-11-15: [학사일정 자동 조회·선택 등록](academic-calendar.md)을 추가했습니다. `academic_calendar_lookups`에 검색 결과를 공유 저장하고, 사용자가 확인한 항목은 `calendar_events`에 본인 RLS 권한으로 등록합니다.
-
-> 현재 웹의 자격증 목록·상세·시험일정은 [공식 API 직접 조회](official-api.md)로 전환했습니다. 아래 자격증 DB 수집·조회 구성은 보존된 이전 구현이며, 현행 웹에서는 사용하지 않습니다. Supabase 스키마와 계정 관련 백엔드는 유지합니다.
-
-작성 기준: 2026-10-13. 관련 결정: [architecture-decisions.md](architecture-decisions.md)
-
-## 1. 구성 개요
+## 1. 보존된 DB 수집 구성
 
 ```text
 공공데이터 API ──(수집 CLI: src.certification.sync)──▶ Supabase PostgreSQL
@@ -23,10 +15,10 @@
 ```
 
 - 수집은 기존 `collect_items()`·`collect_info()`를 그대로 호출한다. 재시도(연결 오류 3회), 페이지 처리, 원문 저장(`data/raw/`) 정책은 변경하지 않았다.
-- 웹의 기존 API(`/api/items`, `/api/details`, `/api/schedules`)는 응답 형식을 유지하면서 DB를 조회한다. 프론트엔드 코드는 수정하지 않았다.
+- 현재 웹의 `/api/items`, `/api/details`, `/api/schedules`는 공식 API 직접 조회다. 아래 DB 수집 구성과 `/api/v1/certifications`는 별도로 보존한다.
 - 스키마는 `supabase/migrations/`의 SQL 마이그레이션으로 관리한다.
 
-## 2. ERD
+## 2. 기본 마이그레이션 ERD
 
 ```mermaid
 erDiagram
@@ -190,6 +182,8 @@ where email = 'admin@example.com';
 | `SUPABASE_DB_URL` | **백엔드 전용** | DB 비밀번호 포함. Session pooler(IPv4) 연결 문자열 권장 |
 | `SUPABASE_JWT_SECRET` | **백엔드 전용** | 레거시 HS256 토큰을 쓸 때만 설정 |
 | `DATA_GO_KR_API_KEY` | **백엔드 전용** | 공공데이터포털 인증키 |
+| `ANTHROPIC_API_KEY` | **백엔드 전용** | 학교 공식 시험 일정 검색 |
+| `ANTHROPIC_MODEL` | 설정 | 기본 `claude-sonnet-4-6` |
 | `CERT_*_REFRESH_HOURS` | 설정 | 목록·상세·일정 갱신 주기(시간), 기본 24 |
 | `CERT_SCHEDULE_YEAR_OFFSETS` | 설정 | 일정 수집 연도(올해 기준), 기본 `0,1` |
 | `PUBLIC_API_REQUEST_INTERVAL_SECONDS` | 설정 | API 호출 간격, 기본 0.3초 |
@@ -200,12 +194,15 @@ secret key(`sb_secret_...`/service_role)는 현재 사용하지 않는다. 프�
 
 | 경로 | 설명 |
 |---|---|
-| `GET /api/items` | (기존 형식) 활성 종목 전체, `fetched_at` = 마지막 목록 수집 시각 |
-| `GET /api/details?jmcd=` | (기존 형식) 상세 섹션. 미수집이면 503, `stale`은 마지막 갱신 실패 표시 |
-| `GET /api/schedules?jmcd=&year=&category=` | (기존 형식) 시험일정 |
+| `GET /api/items` | 공식 API 종목 목록 직접 조회 |
+| `GET /api/details?jmcd=` | 공식 API 상세 직접 조회 |
+| `GET /api/schedules?jmcd=&year=&category=` | 공식 API 시험일정 직접 조회 |
 | `GET /api/v1/certifications?q=&qualgb_cd=&field=&limit=&offset=` | 검색·필터·페이지 |
 | `GET /api/v1/certifications/{jm_cd}` | 종목 + 상세 + 수집 상태 |
 | `GET /api/v1/certifications/{jm_cd}/exams?year=&phase=` | 단계별 시험일정 (캘린더 연결용 `id` 포함) |
+| `GET /api/contests` | `contests`의 공모전 목록·이미지·등록 시각 |
+| `PUT /api/account/profile` | 본인 기본 프로필·학년도 저장 |
+| `GET /api/academic/calendar` | 본인 중간·기말고사 일정 |
 | `GET /api/v1/me` | 로그인 필요. 본인 프로필·설정 (RLS 적용) |
 | `GET /api/v1/admin/sync-runs` | 관리자. 작업별 최근 수집 결과 |
 | `GET /api/v1/config` | 프론트엔드용 공개 설정 |
@@ -226,11 +223,12 @@ npx supabase db push --dry-run   # 적용될 마이그레이션 확인
 npx supabase db push
 ```
 
-## 9. 향후 연동 계획
+## 9. 남은 DB 연동
 
-1. **프론트엔드 인증·동기화**: Supabase Auth(supabase-js + publishable key)로 로그인하고, localStorage의 프로필·관심 목록·일정을 첫 로그인 시 DB로 옮긴다. 개인 데이터 CRUD API를 `user_transaction` 기반으로 추가한다.
-2. **학사일정**: 학교명 입력 → `universities`/`academic_events` 캐시 확인 → 없으면 공식 출처 검색과 LLM 추출 → 검증 → 사용자 확인 후 저장. 사용자별 수정 내용은 `calendar_events`(academic_event_id 연결)에 저장한다.
-3. **공모전**: 공고 URL/PDF 업로드(Storage) → AI 추출 결과를 `ai_extraction`에 보관 → 사용자가 확인·수정 후 `pending` 제출 → 관리자 승인. 승인 화면은 관리자 전용 API로 구현한다.
-4. **챗봇 추천**: 대화 기록은 `chat_sessions/messages`에 저장하고, 추천 항목은 메시지 `metadata`에 `{jm_cd, exam_id}` 참조로 남긴다. 사용자가 선택하면 `bookmarks`/`calendar_events`로 저장한다.
-5. **알림**: 발송이 필요해지면 `notifications` 테이블과 정기 작업을 추가한다.
-6. **운영**: 정기 수집 cron 설정, `data/raw` 원문 보관 기간 정책(현재는 호출마다 파일이 누적된다), 수집 실패 알림.
+- 관심 목록·일반 일정의 사용자별 CRUD와 재로그인·브라우저 간 동기화.
+- 공부시간·준비기간·캠퍼스 등 프로필 추가 설정의 저장·복원 보완.
+- `contests` 스키마의 마이그레이션 관리. 기존 `competitions`의 제출·검수·Storage 흐름은 아직 별개다.
+- 추천 대화 기록·실제 인기 지표·알림 발송 연동.
+- 원문 파일 보관 기간, 수집·검색 실패 감시와 웹 프로세스 밖의 작업 복구.
+
+실행·배포 저장소에서는 마이그레이션을 별도로 배포하지 않았으며 기존 Supabase DB를 연결한다. [배포 안내](../deployment.md)

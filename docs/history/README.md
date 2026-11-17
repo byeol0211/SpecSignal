@@ -9,4 +9,10 @@
 - [이전 디자인 구현](design-implementation-before-plsai.md)
 - [이전 아키텍처 결정](architecture-decisions-before-plsai.md)
 
-기존 상대 링크는 이력 폴더 이동으로 달라질 수 있습니다. 현재 DB 문서는 [Supabase 데이터베이스](../supabase-database.md)에 있습니다.
+기존 상대 링크는 이력 폴더 이동으로 달라질 수 있습니다. 현재 DB 문서는 [Supabase 데이터베이스](../development.md)에 있습니다.
+
+## 추가 참고 기록
+
+- [기존 DB 설계 상세](database-schema-reference.md): 문서 통합 과정에서 보존한 스키마·RLS·Storage·수집 구현 설명.
+
+현행 문서는 [README](../../README.md), [개발 문서](../development.md), [배포 문서](../deployment.md)입니다.
