@@ -6,12 +6,28 @@ from types import SimpleNamespace
 from src.academic.discovery import DiscoveryError, discover, validate_candidates, fetched_evidence, official_url
 
 URL = 'https://www.dongyang.ac.kr/calendar'
-EVENT = {'title':'개강','event_type':'SEMESTER_START','semester':'1','start_date':'2026-03-02',
-         'end_date':'2026-03-02','source_url':URL,'evidence':'2026년 3월 2일 개강일입니다.'}
+EVENT = {'title':'중간고사','event_type':'MIDTERM','semester':'1','start_date':'2026-03-02',
+         'end_date':'2026-03-02','source_url':URL,'evidence':'2026년 3월 2일 중간고사입니다.'}
 DOCUMENT = {'school_name':'동양미래대학교','academic_year':2026,'scope':'undergraduate_common','events':[EVENT]}
 
 
 class AcademicValidationTests(unittest.TestCase):
+    def test_non_exam_events_excluded(self):
+        doc=copy.deepcopy(DOCUMENT)
+        doc['events'] += [dict(EVENT, title='기말고사',event_type='FINAL'),
+                          dict(EVENT,title='개강',event_type='SEMESTER_START'),
+                          dict(EVENT,title='방학',event_type='VACATION')]
+        result=validate_candidates(doc,'동양미래대학교',2026,{URL})
+        self.assertEqual([e['event_type'] for e in result],['MIDTERM','FINAL'])
+
+    def test_cache_uses_same_filtered_indices_for_display_and_import(self):
+        from src.academic.discovery import exam_candidates
+        from src.academic.routes import public_job
+        row={'id':'test','school_name':'동양미래대학교','campus':'','academic_year':2026,
+             'status':'ready','message':None,'candidates':[dict(EVENT,event_type='VACATION'),EVENT]}
+        self.assertEqual(public_job(row)['events'],[EVENT])
+        self.assertEqual(exam_candidates(row['candidates'])[0],EVENT)
+
     def test_exact_school_year_and_date(self):
         result=validate_candidates(DOCUMENT,'동양미래대학교',2026,{URL})
         self.assertEqual(result[0]['start_date'],'2026-03-02')

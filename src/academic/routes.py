@@ -2,18 +2,21 @@
 
 from datetime import date, datetime, timezone
 from uuid import UUID
+import logging
+import re
 
 import requests
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel, Field
 from psycopg.types.json import Jsonb
 
-from src.academic.discovery import DiscoveryError, discover, normalize_school
+from src.academic.discovery import DiscoveryError, discover, normalize_school, exam_candidates
 from src.config import get_settings
 from src.db.connection import service_transaction, user_transaction
 from src.web.auth import AuthUser, current_user
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 class Credentials(BaseModel):
@@ -36,7 +39,31 @@ def authenticate(action: str, body: Credentials):
     except requests.RequestException:
         raise HTTPException(503, "계정 서버에 연결하지 못했습니다.") from None
     if not response.ok:
-        raise HTTPException(400, "계정 연결에 실패했습니다. 이메일·비밀번호·인증 메일 또는 가입 제한을 확인해 주세요.")
+        try:
+            error = response.json()
+        except ValueError:
+            error = {}
+        # GoTrue returns a numeric HTTP `code` alongside the actual `error_code`.
+        code = (error.get("error_code") or error.get("code")) if isinstance(error, dict) else None
+        code = code if isinstance(code, str) and re.fullmatch(r"[a-z_]{1,80}", code) else "unknown"
+        logger.warning("Supabase Auth action=%s status=%s error_code=%s", action, response.status_code, code)
+        messages = {
+            "over_email_send_rate_limit": "인증 메일 발송 한도에 도달했습니다. 잠시 후 다시 시도해 주세요. 반복되면 운영자가 Supabase 메일 발송 설정을 확인해야 합니다.",
+            "over_request_rate_limit": "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.",
+            "email_address_invalid": "올바른 이메일 주소를 입력해 주세요.",
+            "email_address_not_authorized": "현재 메일 발송 설정에서는 이 주소로 인증 메일을 보낼 수 없습니다. 운영자가 Supabase SMTP 설정을 확인해야 합니다.",
+            "weak_password": "비밀번호가 보안 조건을 충족하지 않습니다. 더 긴 비밀번호에 영문·숫자·특수문자를 함께 사용해 주세요.",
+            "user_already_exists": "이미 가입된 계정입니다. 기존 계정 로그인을 선택해 주세요.",
+            "email_exists": "이미 가입된 이메일입니다. 기존 계정 로그인을 선택해 주세요.",
+            "email_not_confirmed": "이메일 인증이 완료되지 않았습니다. 받은 인증 메일의 링크를 먼저 열어 주세요.",
+            "invalid_credentials": "이메일 또는 비밀번호가 올바르지 않습니다.",
+            "signup_disabled": "현재 신규 가입이 중지되어 있습니다. 운영자가 Supabase 가입 설정을 확인해야 합니다.",
+            "email_provider_disabled": "이메일 로그인이 비활성화되어 있습니다. 운영자가 Supabase 인증 설정을 확인해야 합니다.",
+            "unexpected_failure": "계정 서버 내부 오류입니다. 운영자가 Supabase Auth 로그와 회원 생성 DB 트리거를 확인해야 합니다.",
+        }
+        status = 429 if response.status_code == 429 else 503 if response.status_code >= 500 else 400
+        message = messages.get(code, "회원가입 요청이 거절되었습니다." if action == "signup" else "로그인 요청이 거절되었습니다.")
+        raise HTTPException(status, f"{message} (오류: {code}, HTTP {response.status_code})")
     result = response.json()
     return {"access_token": result.get("access_token"), "expires_in": result.get("expires_in"),
             "confirmation_required": not bool(result.get("access_token"))}
@@ -51,10 +78,21 @@ class SchoolRequest(BaseModel):
     career: str = Field(default="", max_length=100)
 
 
+@router.put("/api/account/profile")
+def save_account_profile(body: SchoolRequest, user: AuthUser = Depends(current_user)):
+    if not body.school.strip() or not body.major.strip():
+        raise HTTPException(400, "학교와 학과를 입력해 주세요.")
+    with user_transaction(user.claims) as conn:
+        conn.execute("update public.profiles set school_name=%s,major=%s,display_name=%s,interest_jobs=%s where id=%s",
+                     (body.school.strip(), body.major.strip(), body.nickname.strip(), [body.career.strip()] if body.career.strip() else [], user.id))
+        conn.execute("update public.user_preferences set academic_year=%s where user_id=%s", (body.year, user.id))
+    return {"ok": True}
+
+
 def public_job(row, source="database"):
     return {"id": str(row["id"]), "school": row["school_name"], "campus": row["campus"],
             "year": row["academic_year"], "status": row["status"], "source": source,
-            "events": row["candidates"] if row["status"] == "ready" else [], "message": row["message"]}
+            "events": exam_candidates(row["candidates"]) if row["status"] == "ready" else [], "message": row["message"]}
 
 
 def run_discovery(job_id):
@@ -127,14 +165,15 @@ def confirm(body: Selection, user: AuthUser = Depends(current_user)):
         if not job:
             raise HTTPException(409, "완료된 조회 결과를 먼저 확인해 주세요.")
         indices = sorted(set(body.indices))
-        if any(i < 0 or i >= len(job["candidates"]) for i in indices):
+        candidates = exam_candidates(job["candidates"])
+        if any(i < 0 or i >= len(candidates) for i in indices):
             raise HTTPException(400, "일정 선택이 올바르지 않습니다.")
         university = conn.execute("""insert into public.universities(name,campus) values(%s,%s)
             on conflict(name,campus) do update set name=excluded.name returning id""",
             (job["school_key"],job["campus"] or None)).fetchone()["id"]
         event_ids = []
         for i in indices:
-            e = job["candidates"][i]
+            e = candidates[i]
             row = conn.execute("""insert into public.academic_events(university_id,academic_year,semester,event_type,title,start_date,end_date,source_url,created_by)
                 values(%s,%s,%s,%s,%s,%s,%s,%s,%s)
                 on conflict(university_id,academic_year,semester,event_type,title,start_date) do update
@@ -156,8 +195,19 @@ def confirm(body: Selection, user: AuthUser = Depends(current_user)):
 @router.get("/api/academic/calendar")
 def calendar(user: AuthUser = Depends(current_user)):
     with user_transaction(user.claims) as conn:
-        rows = conn.execute("select id,title,start_date,end_date,memo,academic_event_id from public.calendar_events where user_id=%s and source_type='academic_event' order by start_date,id", (user.id,)).fetchall()
-    return {"events":rows}
+        rows = conn.execute("""select id,title,start_date,end_date,memo,academic_event_id
+            from public.calendar_events where user_id=%s and source_type='academic_event'
+            order by start_date,id""", (user.id,)).fetchall()
+    if not rows:
+        return {"events": []}
+    # Shared AI candidates remain unverified and hidden by RLS. Read only their
+    # types internally, after RLS has selected this user's private snapshots.
+    with service_transaction() as conn:
+        exams = conn.execute("""select id from public.academic_events
+            where id=any(%s) and event_type in ('MIDTERM','FINAL')""",
+            ([row["academic_event_id"] for row in rows],)).fetchall()
+    exam_ids = {row["id"] for row in exams}
+    return {"events": [row for row in rows if row["academic_event_id"] in exam_ids]}
 
 
 class PersonalAcademicEdit(BaseModel):

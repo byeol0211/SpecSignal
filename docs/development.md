@@ -36,7 +36,7 @@ PLSAi는 루트 `index.html`, `CSS/`, `js/`를 유지합니다. `pages/`와 기�
 | `GET /api/academic/calendar` | 본인 학교 시험 일정 |
 | `PATCH`, `DELETE /api/academic/calendar/{event_id}` | 본인 일정 수정·삭제 |
 
-API 명세는 `/api/openapi.json`입니다. `/healthz`는 현재 PLSAi 배포 구성에 추가한 프로세스 상태 확인 경로입니다.
+API 명세는 `/api/openapi.json`입니다. `/healthz`는 두 저장소 모두 제공하는 프로세스 상태 확인 경로입니다.
 
 ### 계정·프로필
 

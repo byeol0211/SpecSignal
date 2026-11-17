@@ -56,7 +56,7 @@ async def security_headers(request: Request, call_next):
     response = await call_next(request)
     response.headers["Cache-Control"] = "no-store"
     response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; base-uri 'none'; frame-ancestors 'none'"
+    response.headers["Content-Security-Policy"] = "default-src 'self'; img-src 'self' https: http:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; base-uri 'none'; frame-ancestors 'none'"
     return response
 
 
@@ -70,6 +70,11 @@ async def database_error(_: Request, exc: Exception) -> JSONResponse:
 @app.get("/api/items")
 def api_items() -> JSONResponse:
     return legacy_response(load_items())
+
+
+@app.get("/healthz", include_in_schema=False)
+def healthcheck():
+    return {"status": "ok"}
 
 
 @app.get("/api/details")
@@ -96,6 +101,15 @@ def public_config() -> dict:
     settings = get_settings()
     return {"supabase_url": settings.supabase_url,
             "supabase_publishable_key": settings.supabase_publishable_key}
+
+
+@app.get("/api/contests")
+def contests():
+    with service_transaction() as conn:
+        rows = conn.execute("""select id,title,organizer,categories,status,source_url,
+            start_date,end_date,description,eligibility,prizes,image_url,created_at
+            from public.contests order by end_date asc nulls last,id limit 1000""").fetchall()
+    return {"items": rows}
 
 
 @app.get("/api/v1/certifications")
@@ -170,6 +184,7 @@ app.include_router(academic_router)
 WEB_DIR = Path(__file__).resolve().parent
 STATIC_FILES = {
     "": "index.html",
+    "index.html": "index.html",
     "CSS/style.css": "CSS/style.css",
     "js/app.js": "js/app.js",
     "js/backend.js": "js/backend.js",

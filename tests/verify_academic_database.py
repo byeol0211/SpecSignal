@@ -38,7 +38,7 @@ def main():
             users.append(AuthUser(uid,{'sub':uid,'role':'authenticated','aud':'authenticated'}))
         school='테스트대학교-'+str(uuid4())[:8]
         request=routes.SchoolRequest(school=school,major='인공지능소프트웨어학과',year=2026)
-        event={'title':'검증용 개강','start_date':'2026-03-02','end_date':'2026-03-02','event_type':'SEMESTER_START',
+        event={'title':'검증용 중간고사','start_date':'2026-03-02','end_date':'2026-03-02','event_type':'MIDTERM',
                'semester':'1','source_url':'https://test.ac.kr/calendar','evidence':'테스트 트랜잭션에만 존재하는 일정'}
         with patch.object(routes,'service_transaction',service),patch.object(routes,'user_transaction',personal),patch.object(routes,'discover',return_value=[event]) as ai:
             tasks=BackgroundTasks();first=routes.lookup(request,tasks,users[0]);assert first['status']=='pending'
@@ -52,8 +52,8 @@ def main():
             routes.confirm(body,users[1]);two=routes.calendar(users[1])['events'];assert len(two)==1
             assert one[0]['id']!=two[0]['id']
             routes.edit_calendar(one[0]['id'],routes.PersonalAcademicEdit(title='개인 수정',date='2026-03-03'),users[0])
-            assert routes.calendar(users[1])['events'][0]['title']=='검증용 개강'
-            assert routes.get_lookup(body.lookup_id,users[0])['events'][0]['title']=='검증용 개강'
+            assert routes.calendar(users[1])['events'][0]['title']=='검증용 중간고사'
+            assert routes.get_lookup(body.lookup_id,users[0])['events'][0]['title']=='검증용 중간고사'
             routes.remove_calendar(one[0]['id'],users[0]);assert not routes.calendar(users[0])['events']
             assert len(routes.calendar(users[1])['events'])==1
         print('PASS: first AI discovery, second-user DB cache, idempotent import, RLS isolation, private edits/deletes')

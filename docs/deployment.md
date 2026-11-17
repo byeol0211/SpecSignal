@@ -4,7 +4,7 @@
 
 ## 현재 상태
 
-[PLSAi 저장소](https://github.com/byeol0211/PLSAi)에 실행 코드와 Render 배포 설정을 반영했습니다. 별도 서버 실행으로 화면·상태 확인·실제 Supabase 공모전 API를 확인했습니다. Render 계정 연결, 서비스 생성, 환경변수 등록과 공개 URL 검증은 아직 완료되지 않았습니다.
+[SpecSignal 저장소](https://github.com/byeol0211/SpecSignal)는 개발·테스트·문서·배포의 기준이며, [PLSAi 저장소](https://github.com/byeol0211/PLSAi)에도 기존 정적 파일 구조로 같은 기능을 반영합니다. 두 저장소 모두 Render 설정을 포함합니다. 서비스 이름은 각각 `specsignal`, `plsai`로 구분합니다. 실제 서비스 생성, 환경변수 등록과 공개 URL 검증은 아직 완료되지 않았습니다.
 
 ## 저장소 구조
 
@@ -24,7 +24,7 @@ render.yaml
 .python-version
 ```
 
-현재 SpecSignal 작업 폴더의 프론트엔드는 `src/web/`에 있습니다. PLSAi에 반영할 때만 위 루트 구조로 복사하고 서버의 정적 파일 루트를 조정합니다. 실제 `.env`, 테스트, 개발 산출물과 문서는 실행 코드 업로드 대상에서 제외했습니다. 새 DB 전체 구축용 마이그레이션도 실행 패키지에 포함하지 않았으므로 기존 Supabase 프로젝트 연결을 전제로 합니다.
+위 구조는 PLSAi 기준입니다. SpecSignal의 프론트엔드는 `src/web/`에 있으며 테스트·문서·마이그레이션도 포함합니다. PLSAi에 반영할 때만 위 루트 구조로 복사하고 서버의 정적 파일 루트를 조정합니다. PLSAi에는 실제 `.env`, 테스트, 개발 산출물과 새 문서를 올리지 않습니다. PLSAi 실행 패키지는 기존 Supabase 프로젝트 연결을 전제로 하며 새 DB 전체 구축용 마이그레이션은 포함하지 않았습니다.
 
 ## Render 구성
 
@@ -38,7 +38,11 @@ pip install -r requirements.txt
 uvicorn src.web.server:app --host 0.0.0.0 --port $PORT --workers 1 --timeout-graceful-shutdown 600
 ```
 
-배포 시작: https://render.com/deploy?repo=https://github.com/byeol0211/PLSAi
+대표 저장소 배포: https://render.com/deploy?repo=https://github.com/byeol0211/SpecSignal
+
+PLSAi 배포: https://render.com/deploy?repo=https://github.com/byeol0211/PLSAi
+
+전체 서비스 하나를 공개하려면 사용할 저장소 하나만 선택하면 됩니다. 두 저장소를 모두 배포할 필요는 없습니다.
 
 Render에서 저장소 접근 권한을 연결하고 Blueprint를 생성한 뒤 아래 환경변수를 대시보드에 입력합니다. 실제 값은 Git이나 문서에 쓰지 않습니다.
 

@@ -13,7 +13,7 @@
 <div id="upcoming"></div>
 <div class="summary-panel"><h3>내 일정 요약</h3><div class="summary-metrics"><div><small>전체 일정</small><strong id="homeUpcomingCount">0</strong></div><div><small>이번 달 일정</small><strong id="homeMonthCount">0</strong></div><div><small>가장 가까운 일정</small><strong id="homeNextDDay">-</strong></div></div><p class="summary-next" id="homeNextTitle">일정을 추가해 보세요</p></div>
 <div class="home-discover" aria-label="자격증과 공모전 둘러보기">
-  <div class="home-discover-heading"><h2>이런 도전은 어때요?</h2><span>자격증 둘러보기</span></div>
+  <div class="home-discover-heading"><h2>이런 도전은 어때요?</h2><span>추천 자격증 · 새 공모전</span></div>
   <div class="home-discover-grid">
   </div>
 </div>
@@ -67,6 +67,9 @@
 <div class="row between"><h2>관심 목록</h2><button class="btn line small" onclick="navigate('explore')">더 찾아보기</button></div>
 <div class="tabs"><button class="active" id="myCertTab" onclick="setMyBookmarkKind('cert')">자격증</button><button id="myCompTab" onclick="setMyBookmarkKind('comp')">공모전</button></div>
 <div id="bookmarksList"></div>
+<h2>등록한 내 일정</h2>
+<p class="small-muted">학사일정을 포함한 전체 일정입니다. 지난 일정도 확인할 수 있어요.</p>
+<div id="mySchedules"></div>
 <div class="card">
 <div class="row between"><div><h2 class="my-card-heading">학사일정 설정</h2><p class="small-muted">학교 일정 조회 또는 직접 입력</p></div><button class="btn alt small" onclick="navigate('academic')">설정하기</button></div>
 </div>

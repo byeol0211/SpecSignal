@@ -32,9 +32,9 @@ python -m venv .venv
 
 ## 저장소와 배포
 
-현재 작업 저장소는 `SpecSignal`이며 실행 파일은 `PLSAi` 저장소에도 반영했습니다. PLSAi에서는 루트 `index.html`, `CSS/`, `js/`를 유지하고 `pages/`와 Markdown은 변경하지 않았습니다. Python 백엔드는 `src/`에 둡니다.
+`SpecSignal`은 최신 기능 코드·테스트·DB 마이그레이션·문서·배포 설정을 관리하는 대표 개발 저장소입니다. `PLSAi`에도 같은 기능의 실행 파일을 반영하되 루트 `index.html`, `CSS/`, `js/`를 유지하고 `pages/`와 Markdown은 변경하지 않습니다. Python 백엔드는 두 저장소 모두 `src/`에 둡니다. 두 저장소는 자동 동기화되지 않습니다.
 
-PLSAi에 Render 배포 설정을 추가했지만 실제 서비스 생성과 공개 URL 발급은 아직 완료하지 않았습니다. GitHub Pages만으로는 Python API가 실행되지 않습니다. 자세한 절차는 [배포 안내](docs/deployment.md)를 참고하세요.
+두 저장소에 Render 배포 설정(`render.yaml`, `.python-version`)을 포함했습니다. 실제 서비스 생성과 공개 URL 발급은 아직 완료하지 않았습니다. GitHub Pages만으로는 Python API가 실행되지 않습니다. 자세한 절차는 [배포 안내](docs/deployment.md)를 참고하세요.
 
 ## 검증
 

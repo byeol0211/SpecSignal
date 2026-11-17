@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: specsignal
+    runtime: python
+    plan: free
+    region: singapore
+    branch: main
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn src.web.server:app --host 0.0.0.0 --port $PORT --workers 1 --timeout-graceful-shutdown 600
+    healthCheckPath: /healthz
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_PUBLISHABLE_KEY
+        sync: false
+      - key: SUPABASE_DB_URL
+        sync: false
+      - key: DATA_GO_KR_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: ANTHROPIC_MODEL
+        value: claude-sonnet-4-6
+      - key: PYTHONUNBUFFERED
+        value: "1"
